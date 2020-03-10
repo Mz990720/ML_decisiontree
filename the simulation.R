@@ -1,0 +1,143 @@
+# Main code used to generate simulated data and run policy learning.
+
+# modify the path to the source directory; alternatively, uncomment the lower
+# line if using RStudio
+# setwd('path/to/source/directory') 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+
+source("C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\install_packages.R")
+source("C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\estimator_functions.R")
+source("C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\generate_data.R")
+sourceCpp('C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\Rport.cpp')
+source("C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\evaluation.R")
+source("C:\\Users\\zhangbokang\\Desktop\\2019summer\\code\\tree_visualization.R")
+options(scipen = 100)
+
+prob_method <- 'mlr'  # 'mlr':multi-class logistic regression; 'rf':random forest;
+rwd_method <- 'rf'  # 'lasso':lasso; 'rf': generalized random forest;
+level_of_tree <- 2 # decide the level of learnt tree
+jump_step <- 1  # step length
+
+n_best <- 15000 # number of observations to calculate best tree
+n_test <-  15000 # number of observations to test learned trees
+n_array = c(500) # array of number of observations to learn trees on 500 1000 1500
+p <- 10 # number of features
+k <- 3 # number of actions
+
+out_filename = 'simulation_output'
+
+# generate best tree
+sink("D:\\My.txt",append=TRUE,split=TRUE)
+print('Generate best tree ')
+sink()
+features_best = generate.features(n_best, p)
+rewardmat_best = get.ellipse.rewards.mtrx(features_best)
+#tree_best = learn(features_best, rewardmat_best, level_of_tree, jump_step)
+tree_best_greedy = learn_greedy(features_best, rewardmat_best, level_of_tree, jump_step)
+
+
+# generate test dataset
+features_test = generate.features(n_test, p)
+rewardmat_test = get.ellipse.rewards.mtrx(features_test)
+
+cycle = 0
+n_trials = 400
+
+method_names = c('CAIPWL_opt', 'CAIPWL_skip', 'CAIPWL_greedy', 'IPWL_opt', 'IPWL_skip', 'IPWL_greedy', 
+                 'CAIPWL_direct', 'DM_direct', 'DM_causal', 'random')
+regression = matrix(0, nrow = 1, ncol = length(method_names)) # need to modify
+results = matrix(0, nrow = n_trials, ncol = length(method_names))
+colnames(results) = method_names
+
+for (n in n_array) {   
+  # use different size of data to train the tree
+
+  print(paste('Number of data points:', n))
+  #repeat n_trials times for avg results
+  for (i in 1:n_trials) 
+  {
+    # generate ellipse data (basically Main.R on the ellipse data)
+    
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    print(paste('trial', i))
+    sink()
+  
+    features = generate.features(n, p)
+    actions = generate.ellipse.actions(features)
+    rewards = generate.ellipse.rewards(features, actions, noise_level = 2)
+    
+    
+    # perform estimation (IPS/DR)
+    dr1 = calculate.Gamma(features, rewards, actions, k, prob_method, mu_estimation = rwd_method, method = 'DR')
+    
+    Gammas = calculate.all.Gammas(features, rewards, actions, probs = 0,
+                                  test_features = features[1:2, ], test_actions=actions[1:2], test_rewards=rewards[1:2],
+                                  0, k = k, train_prob_type = 'est', test_prob_type = 'est', prob_clip = 0.001, direct = TRUE)
+    rewardmat_DR1 = Gammas$AIPW_causal
+    rewardmat_IPS1 = Gammas$IPW
+    rewardmat_DR_direct = Gammas$AIPW_direct
+    rewardmat_DM_direct = Gammas$DM_direct
+    rewardmat_DM_causal = Gammas$DM_causal
+    
+    rewardmat_DR = calculate.Gamma(features, rewards, actions, k, prob_method, mu_estimation = rwd_method, method = 'DR')
+    rewardmat_IPS = calculate.Gamma(features, rewards, actions, k, prob_method, mu_estimation = rwd_method, method = 'IPS')
+ 
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    print('learn')
+    sink()
+    # learn
+    tree_DR = learn(features, rewardmat_DR, level_of_tree, jump_step)
+    tree_IPS = learn(features, rewardmat_IPS, level_of_tree, jump_step)
+    tree_DR_direct = learn(features, rewardmat_DR_direct, level_of_tree, jump_step)
+    tree_DM_direct = learn(features, rewardmat_DM_direct, level_of_tree, jump_step)
+    tree_DM_causal = learn(features, rewardmat_DM_causal, level_of_tree, jump_step)
+    
+    tree_skip_DR = learn(features, rewardmat_DR, level_of_tree, 10)
+    tree_skip_IPS = learn(features, rewardmat_IPS, level_of_tree, 10)
+    
+    
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    print('go to greedy:')
+    sink()
+    
+
+    tree_greedy_IPS = learn_greedy(features, rewardmat_IPS, level_of_tree, jump_step)
+    
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    print('in the greedy:')
+    sink()
+    
+    
+    tree_greedy_DR = learn_greedy(features, rewardmat_DR, level_of_tree, jump_step)
+    
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    #print('after the greedy:')
+    sink()
+    # evaluation (learnt tree vs best tree)
+    results[i, 1] = compute.regret(tree_DR, tree_best, features_test, rewardmat_test)
+    results[i, 2] = compute.regret(tree_skip_DR, tree_best, features_test, rewardmat_test)
+    results[i, 3] = compute.regret(tree_greedy_DR, tree_best, features_test, rewardmat_test)
+    results[i, 4] = compute.regret(tree_IPS, tree_best, features_test, rewardmat_test)
+    results[i, 5] = compute.regret(tree_skip_IPS, tree_best, features_test, rewardmat_test)
+    results[i, 6] = compute.regret(tree_greedy_IPS, tree_best, features_test, rewardmat_test)
+    results[i, 7] = compute.regret(tree_DR_direct, tree_best, features_test, rewardmat_test)
+    results[i, 8] = compute.regret(tree_DM_direct, tree_best, features_test, rewardmat_test)
+    results[i, 9] = compute.regret(tree_DM_causal, tree_best, features_test, rewardmat_test)
+    results[i, 10] = compute.random.regret(k, tree_best, features_test, rewardmat_test)
+    
+    sink("D:\\My.txt",append=TRUE,split=TRUE)
+    print(results[i, ])
+    sink()
+    write.csv(results, paste(out_filename,n,'8.19_test2','.csv', sep="_"), row.names = F)
+
+    # visualization
+    # visualize(tree_DR, TRUE, paste(i, "DR", "learnt.png", sep = '_'))
+    #visualize(tree_DR, as.character(1:p), as.character(1:k), paste('simulation_tree', i, "DR.png",  sep = '_'), TRUE)
+  }
+  # every result means 
+  #print('Final results:')
+  #print(apply(results, 2, mean))
+  #write.csv(results, paste(out_filename,n,'.csv', sep="_"), row.names = F)
+}
+
