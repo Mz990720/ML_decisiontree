@@ -46,7 +46,7 @@ for(j in jumps)
   n_trials = 10  # run n_trials to average
   method_names = c('CAIPWL_opt', 'CAIPWL_skip', 'CAIPWL_greedy', 'IPWL_opt', 'IPWL_skip', 'IPWL_greedy', 
                    'CAIPWL_direct', 'DM_direct', 'DM_causal', 'random')
-  results = matrix(0, nrow = 1, ncol = length(method_names)) #ÃƒÂÃƒË†Ãƒâ€“Ã‚Â»Ã‚Â·Ãƒâ€¦Ãƒâ€™Ã‚Â»ÃƒÂÃƒ�??
+  results = matrix(0, nrow = 1, ncol = length(method_names)) 
   colnames(results) = method_names
   
     for(i in 1:n_trials){
@@ -109,7 +109,6 @@ names(line.model)
 line.model$coefficients
 plot(x[1:6],y[1:6],main="test",type="l",xlab="jump_step/n",ylab="R2/R1")
 
-#ç”»ä¸ªå�??
     #results[1, 1] = newcompute.regret(tree_DR, tree_best, features, rewards)
     #results[1, 2] = newcompute.regret(tree_skip_DR, tree_best, features, rewards)
     #results[1, 3] = compute.regret(tree_greedy_DR, tree_best, features, rewards)
