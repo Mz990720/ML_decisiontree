@@ -22,7 +22,9 @@ Rcode文件夹中主要是调用Ccode文件夹中的代码以及进行大规模�
 
 skip是对greedy的一个优化，就是在greedy方法找分割点的时候，设置步长>1，并且我们初步假设，按照这样skip的方法，和最优解的值应该有一个线性的关系。我们假设最终用skip方法求得的rewards为R2，ground choose（最优解）求得的rewards为R1，预想会满足这样一个不等式。
 
-R2 $\geq$ c*(1-k/n)*R1
+![formula](./img/formula.png)
+
+其中c是常数，n是总样本数，k是每一次的步长。
 
 实际的实验结果证明确实是线性关系，但其中的理论关系仍未求证推导。
 
