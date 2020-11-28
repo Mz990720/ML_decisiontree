@@ -1,5 +1,11 @@
 # 2019 斯坦福暑研 机器学习decision tree
 
+## 背景
+
+2019 summer Stanford research assitant: Assited Prof.Zhengyuan Zhou with his paper on an special kind of decision tree.
+More details:https://joss.theoj.org/papers/10.21105/joss.02232 
+
+
 ## 整体架构
 
 本项目为R语言与C++语言结合开发的项目，输入为一系列经过处理的数据（特征值）和每一步分支分类的reward，输出为最佳的分类，是一个会根据features分类的决策树任务。本项目实现了该决策树算法的greedy实现以及skip算法提高效率的思考，以及budget算法的初步构思。
