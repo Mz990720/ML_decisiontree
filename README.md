@@ -2,8 +2,7 @@
 
 ## Research background
 
-2019 summer Stanford research assitant: Assited Prof.Zhengyuan Zhou with his paper on an special kind of decision tree.
-More details:https://joss.theoj.org/papers/10.21105/joss.02232 
+2019 summer Stanford research assitant: Assited Prof.Zhengyuan Zhou with his paper on an special kind of decision tree :https://joss.theoj.org/papers/10.21105/joss.02232 
 
 
 ## Overall Structure
